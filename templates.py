@@ -1,11 +1,12 @@
 import hashlib
 import time
 import struct
+from binascii import hexlify, unhexlify
 
 def sha256(a):
-    a = a[::-1]
-    h = hashlib.sha256(hashlib.sha256(bytes.fromhex(a)).digest()).digest()
-    return h
+    a1 = unhexlify(a)
+    h = hashlib.sha256(hashlib.sha256(a1).digest()).digest()
+    return hexlify(h)[::-1].decode('utf-8')
 
 def double_sha256(a, b):
     # Reverse inputs before and after hashing
@@ -168,26 +169,30 @@ class BlockHeader(Template):
         self.add_field("merkle_root", merkle_root)
         self.add_field("timestamp", timestamp)
         self.add_field("bits", bits)
-        self.add_field("nonce", nonce)
-
+        self.no_nonce = self.build_hexstring()
+    def build_hexstring_nonce(self,nonce):
+        return self.no_nonce+nonce
+    
     def calc_merkle_root(self,txns):
         if len(txns) == 1:
-            return txns[0]
+            return txns[0].template["input"].template["txid"]
         if len(txns) % 2 != 0:
             txns.append(txns[-1])
         new_txns = []
         for i in range(0,len(txns),2):
-            new_txns.append(double_sha256(txns[i],txns[i+1]))
+            new_txns.append(double_sha256(txns[i].template["input"].template["txid"],txns[i+1].template["input"].template["txid"]))
         return self.calc_merkle_root(new_txns)
     
-    def calc_hash(self):
-        return sha256(self.build_hexstring())
-        
-    def increment_nonce(self):
-        self.template_list[-1][1] = str(hex(int(self.template_list[-1][1],16)+1))[2:]
-        
+    def calc_hash(self,nonce):
+        self.nonce = nonce
+        return sha256(self.build_hexstring_nonce(nonce))
+    
+
     def update_time(self):
         self.template_list[3][1] = str(hex(struct.unpack('>I',struct.pack('<I',int(time.time())))[0]))[2:]
+        
+    def build_final_block(self):
+        return self.build_hexstring()+"01"+''.join([txn.build_hexstring() for txn in self.txns])
 
 if __name__ == "__main__":
     output = Output(amnt="00f2052a01000000", address="4f36e8847f8a508f46023d63f347044c2744ae32")
