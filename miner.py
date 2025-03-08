@@ -9,9 +9,14 @@ class Miner:
         output = Output(amnt="00f2052a01000000", address=self.address)
         coinbase_tx = CoinbaseTransaction(height,output_count="01",outputs=[output])
         block_header = BlockHeader(version,prev_block,bits,[coinbase_tx]+transactions)
-        target = int(bits[2:],16)*(16**(int(bits[:2],16)*2-6))
-        print(f"bits:{bits}, {hex(target)}: target, exponent = {(16**(int(bits[:2],16)*2-6))}")
+        
+        #target calculation 
+        exponent = int(bits[0:2],16)
+        coefficient = int(bits[2:],16)
+        target = coefficient * 2**(8 * (exponent - 3))
         small_target = target*(16**3)
+        print(f"bits:{bits},target: {hex(target)}, exponent = {hex(exponent)}")
+        
         nonce = 0
         while nonce < self.MAX_NONCE:
             nonce_str = str(hex(nonce))[2:].zfill(8)
