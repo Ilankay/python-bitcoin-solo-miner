@@ -107,7 +107,7 @@ class CoinbaseInput(Template):
         vout = "ffffffff"
         sequence = "fffffffe"
         scriptSig = self.build_script_sig(height)
-        scriptSig_size = str(hex(len(scriptSig)//2))[2:]
+        scriptSig_size = str(hex(len(s1ccriptSig)//2))[2:]
         if len(scriptSig_size) % 2 != 0:
             scriptSig_size = "0"+scriptSig_size
         self.add_field("txid", txid)
@@ -169,11 +169,12 @@ class BlockHeader(Template):
         self.add_field("merkle_root", merkle_root)
         self.add_field("timestamp", timestamp)
         self.add_field("bits", bits)
+        self.final_nonce = nonce
         self.no_nonce = self.build_hexstring()
-    def build_hexstring_nonce(self,nonce):
+    def build_hexstring_nonce(self,nonce:str):
         return self.no_nonce+nonce
     
-    def calc_merkle_root(self,txns):
+    def calc_merkle_root(self,txns:list):
         if len(txns) == 1:
             return txns[0].template["input"].template["txid"]
         if len(txns) % 2 != 0:
@@ -183,16 +184,22 @@ class BlockHeader(Template):
             new_txns.append(double_sha256(txns[i].template["input"].template["txid"],txns[i+1].template["input"].template["txid"]))
         return self.calc_merkle_root(new_txns)
     
-    def calc_hash(self,nonce):
+    def calc_hash(self,nonce:str):
         self.nonce = nonce
         return sha256(self.build_hexstring_nonce(nonce))
     
 
     def update_time(self):
         self.template_list[3][1] = str(hex(struct.unpack('>I',struct.pack('<I',int(time.time())))[0]))[2:]
-        
+
+    def set_final_nonce(self,nonce:str):
+        self.final_nonce = nonce
+
+    def build_block_header(self):
+        return self.build_hexstring_nonce(self.final_nonce)
+
     def build_final_block(self):
-        return self.build_hexstring()+"01"+''.join([txn.build_hexstring() for txn in self.txns])
+        return self.build_hexstring_nonce(self.final_nonce)+"01"+''.join([txn.build_hexstring() for txn in self.txns])
 
 if __name__ == "__main__":
     output = Output(amnt="00f2052a01000000", address="4f36e8847f8a508f46023d63f347044c2744ae32")
