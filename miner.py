@@ -22,8 +22,9 @@ class Miner:
         :param bits: hex string
         :param transactions: transaction list
         """
+        commitment_output = Output(amnt="0000000000000000",script_type = "commitment")
         output = Output(amnt=self.amnt, address=self.address)
-        coinbase_tx = CoinbaseTransaction(height,output_count="01",outputs=[output])
+        coinbase_tx = CoinbaseTransaction(height,output_count="02",outputs=[output,commitment_output])
         block_header = BlockHeader(version,prev_block,bits,[coinbase_tx]+transactions)
         
         #target calculation 
@@ -31,8 +32,8 @@ class Miner:
         coefficient = int(bits[2:],16)
         target = coefficient * 2**(8 * (exponent - 3))
         # for testing purpouses:
-        target = target *(16**4)
-        small_target = target*(16**3)
+        #target = target *(16**4)
+        small_target = target*(16)
         print(f"bits:{bits},target: {hex(target)}, exponent = {hex(exponent)}")
         
         nonce = 0
@@ -51,8 +52,8 @@ class Miner:
         
 if __name__ == "__main__":
     miner = Miner("0638a075aeb98f5d1404fc69dcaed3c4e71ce611")
-
-    block_header, hash = miner.mine("04","20000000", "000000008fdb91aeacb6168c7e51e591ba8f8bd5c5898185c99596e4e5cc5c97","1d00ffff")
+    prev_block = "00000000f616a555f37553fd69d9ed59315ad48c3894b75e30cc606f84d42ea6"
+    block_header, hash = miner.mine("05","20000000",prev_block ,"1d00ffff")
     print(f"BlockHeader:{block_header.build_block_header()}\n Block:{block_header.build_final_block()}\n, hash: {hash}")
     
  
