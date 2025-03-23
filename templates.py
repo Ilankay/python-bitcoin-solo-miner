@@ -117,7 +117,7 @@ class Transaction(Template):
         to_hash += self.template["output count"]
         for output in self.template["outputs"]:
             to_hash += output.build_hexstring()
-        to_hash += template["locktime"]
+        to_hash += self.template["locktime"]
         return hash256(to_hash)
 
 
@@ -262,7 +262,7 @@ class  CoinbaseTransaction(Template):
         input = CoinbaseInput(height)
         witness = CoinbaseWitness()
         locktime = "00000000"
-        
+     
         self.add_field("version", version)
         #self.add_field("marker", marker)
         #self.add_field("flag", flag)
@@ -293,7 +293,7 @@ class BlockHeader(Template):
         """
         super().__init__()
         merkle_root = self.calc_merkle_root(txns)
-        timestamp = str(hex(struct.unpack('>I',struct.pack('<I',int(time.time())))[0]))[2:]
+        timestamp = switch_endian(hex(int(time.time()))[2:])
         nonce = "00000000"
         txn_count = str(hex(len(txns)))[2:]
         if len(txn_count) % 2 != 0:
@@ -342,8 +342,8 @@ class BlockHeader(Template):
 
     def update_time(self):
         """update_time."""
-        self.template_list[3][1] = str(hex(struct.unpack('>I',struct.pack('<I',int(time.time())))[0]))[2:]
-
+        self.template_list[3][1] = switch_endian(hex(int(time.time()))[2:])
+        
     def set_final_nonce(self,nonce:str):
         """set_final_nonce.
 
