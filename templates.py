@@ -129,7 +129,7 @@ class Output(Template):
     def __init__(self, amnt="", address="", script_type="P2WPKH",wtxids = []):
         """__init__.
 
-        :param amnt:
+        :param amnt: input in big endian byte order
         :param address: 
         :param script_type: P2PKH | P2WPKH | commitment
         :param wtxids: used only in case of script type being  commitment
@@ -147,7 +147,7 @@ class Output(Template):
         else:
             raise Exception("bad script type")
 
-        self.add_field("amnt", amnt)
+        self.add_field("amnt", switch_endian(amnt))
         self.add_field("scriptPubKey size", scriptPubKey_size)
         self.add_field("scriptPubKey", scriptPubKey)
 
