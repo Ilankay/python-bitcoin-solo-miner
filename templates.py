@@ -283,7 +283,7 @@ class  CoinbaseTransaction(Template):
 class BlockHeader(Template):
     """BlockHeader."""
 
-    def __init__(self, version="", prev_block="", bits="", txns=[]):
+    def __init__(self, version="", prev_block="", bits="", txns=[],timestamp=""):
         """__init__.
 
         :param version: in big endian byte order
@@ -293,7 +293,7 @@ class BlockHeader(Template):
         """
         super().__init__()
         merkle_root = self.calc_merkle_root(txns)
-        timestamp = switch_endian(hex(int(time.time()))[2:])
+        if timestamp == "":timestamp = switch_endian(hex(int(time.time()))[2:])
         nonce = "00000000"
         txn_count = str(hex(len(txns)))[2:]
         if len(txn_count) % 2 != 0:
@@ -343,7 +343,8 @@ class BlockHeader(Template):
     def update_time(self):
         """update_time."""
         self.template_list[3][1] = switch_endian(hex(int(time.time()))[2:])
-        
+    def set_time(self,timestamp):
+        self.template_list[3] = ("timestamp",timestamp)
     def set_final_nonce(self,nonce:str):
         """set_final_nonce.
 
