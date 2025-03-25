@@ -2,7 +2,7 @@ from .templates import Output, CoinbaseTransaction, BlockHeader
 import socket
 import struct
 import json
-
+from multiprocessing import Queue
 def encode_compactsize(i):
     if i <= 252:
         return f"{i:02x}"
@@ -16,7 +16,7 @@ def encode_compactsize(i):
 class Miner:
     """Miner."""
 
-    def __init__(self,stdout = True, out_socket={}):
+    def __init__(self,stdout = True,q_flag=False,send_q=Queue() ,out_socket={}):
         """__init__.
 
         :param address: hex string
@@ -28,6 +28,8 @@ class Miner:
         #self.address = str(hex(int(address,32)))[2:] don't know what this line was
         self.stdout = stdout
         self.socket_flag = False
+        self.q_flag = q_flag
+        self.send_q=send_q
         if out_socket.get("port") is not None and out_socket.get("address") is not None:
             self.socket_flag = True
             self.sock_address = out_socket["address"]
@@ -85,15 +87,26 @@ class Miner:
                     length_header = struct.pack("!I",len(block))
                     identity = struct.pack("!B",1)
                     s.sendall(length_header+identity+block)
+                if self.q_flag:
+                    block = block_header.build_final_block().encode()
+                    length_header = struct.pack("!I",len(block))
+                    identity = struct.pack("!B",1)
+                    msg = length_header+identity+block
+                    self.send_q.put(msg)
 
                 return_flag = True
             elif int_hash < small_target:
                 if self.stdout: print(f"Nonce: {nonce:08x}, Hash: {hash}")
                 if self.socket_flag:
                     block_header_encoded = (block_header.build_hexstring()+nonce_str).encode()
-                    header = struct.pack("!I",len(block_header_encoded))
                     identity = struct.pack("!B",0)
-                    s.sendall(header+identity+block_header_encoded)
+                    s.sendall(identity+block_header_encoded)
+                if self.q_flag:
+                    block_header_encoded = (block_header.build_hexstring()+nonce_str).encode()
+                    identity = struct.pack("!B",0)
+                    msg = (identity+block_header_encoded)
+                    self.send_q.put(msg)
+
             nonce += 1
         if self.stdout: print("No valid nonce found")
         return return_flag
